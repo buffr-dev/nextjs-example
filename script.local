@@ -1,0 +1,13 @@
+$ pnpx buffr-next init
+- Installing @buffr/next...
+✅ Install complete
+
+🚨 Multiple Routers Detected. Would you like to use App Router or Pages Router (legacy)? *App* Pages
+
+- Adding /src/app/api/images/upload/route.ts...
+✅ Added upload route
+
+🎉 Setup Complete
+
+<!-- POST localhost:3000/api/images/upload, {file: "Image.jpg"} -->
+

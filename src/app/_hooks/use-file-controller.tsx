@@ -21,21 +21,8 @@ export function useFileController(initialFiles?: File[]) {
 
   const onInputChange: ChangeEventHandler<HTMLInputElement> = useCallback(
     (e) => {
-      const fileList = e.currentTarget.files;
-      if (!fileList) {
-        setFiles([]);
-        return;
-      }
-
-      let values: File[] = [];
-      for (let i = 0; i < fileList.length; i++) {
-        const file = fileList.item(i);
-        if (file) {
-          values.push(file);
-        }
-      }
-      console.log(values);
-      setFiles(values);
+      const fileList = e.currentTarget.files || [];
+      setFiles(Array.from(fileList));
     },
     []
   );

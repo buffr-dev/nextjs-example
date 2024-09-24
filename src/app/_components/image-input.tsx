@@ -1,10 +1,14 @@
 "use client";
 
 import clsx from "clsx";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useImageDownloader } from "../_hooks/use-image-downloader";
 import { HeadlessFileInput } from "./headless-file-input";
 import { useFileController } from "../_hooks/use-file-controller";
+import {
+  buildFileDropHandler,
+  ignoreAndPreventDefault,
+} from "../_utils/event-handlers";
 
 interface Props {
   initialURL?: string | null;
@@ -15,11 +19,19 @@ interface NamedBlob extends Blob {
 }
 
 export function ImageInput(props: Props) {
-  const { blob } = useImageDownloader(props.initialURL);
   const fileController = useFileController([]);
+  const appendFiles = useCallback(
+    (files: File[]) => fileController.setFiles((f) => [...f, ...files]),
+    []
+  );
+  const onDrop = useCallback(buildFileDropHandler(appendFiles), []);
+
+  const { blob } = useImageDownloader(props.initialURL);
 
   useEffect(() => {
-    const files = blob ? [new File([blob], "blob", { type: blob.type })] : [];
+    const files = blob
+      ? [new File([blob], "initial-blob", { type: blob.type })]
+      : [];
     fileController.setFiles(files);
   }, [blob]);
 
@@ -47,6 +59,8 @@ export function ImageInput(props: Props) {
             "w-full h-full rounded-md border-dashed border-2 text-foreground",
             "hover:brightness-75 text-foreground mt-6"
           )}
+          onDrop={onDrop}
+          onDragOver={ignoreAndPreventDefault}
         >
           <div>Upload</div>
         </div>

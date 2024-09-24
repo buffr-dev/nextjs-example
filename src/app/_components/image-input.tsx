@@ -1,9 +1,10 @@
 "use client";
 
 import clsx from "clsx";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect } from "react";
 import { useImageDownloader } from "../_hooks/use-image-downloader";
-import { HeadlessFileSelector } from "./headless-file-selector";
+import { HeadlessFileInput } from "./headless-file-input";
+import { useFileController } from "../_hooks/use-file-controller";
 
 interface Props {
   initialURL?: string | null;
@@ -14,28 +15,28 @@ interface NamedBlob extends Blob {
 }
 
 export function ImageInput(props: Props) {
-  const [values, setValues] = useState<Blob[]>([]);
   const { blob } = useImageDownloader(props.initialURL);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const fileController = useFileController([]);
 
   useEffect(() => {
-    setValues(blob ? [blob] : []);
+    const files = blob ? [new File([blob], "blob", { type: blob.type })] : [];
+    fileController.setFiles(files);
   }, [blob]);
-
-  const dataURL = useMemo(() => {
-    if (!values || values.length === 0) return null;
-    // TODO object urls are not released...
-    return URL.createObjectURL(values[0]);
-  }, [values]);
 
   return (
     <>
-      {dataURL && <img className="size-96 rounded-md" src={dataURL} />}
-      <HeadlessFileSelector
-        values={values}
-        onChangeValues={(newValues) => {
-          setValues(newValues);
-        }}
+      <div className="flex gap-4">
+        {fileController.files.map((f) => (
+          <img
+            key={f.name}
+            className="size-32 rounded-md"
+            src={URL.createObjectURL(f)}
+          />
+        ))}
+      </div>
+      <HeadlessFileInput
+        onChange={fileController.onInputChange}
+        inputRef={fileController.inputRef}
         accept="image/*"
         inputName="uploader"
         multiple
@@ -47,13 +48,12 @@ export function ImageInput(props: Props) {
             "hover:brightness-75 text-foreground mt-6"
           )}
         >
-          {!dataURL && <div>Upload</div>}
-          {dataURL && <div>Change</div>}
+          <div>Upload</div>
         </div>
-      </HeadlessFileSelector>
+      </HeadlessFileInput>
       <button
         onClick={() => {
-          setValues([]);
+          fileController.setFiles([]);
         }}
       >
         Clear

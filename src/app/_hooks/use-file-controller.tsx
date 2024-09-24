@@ -1,19 +1,13 @@
-import { ChangeEventHandler, useCallback, useEffect, useRef } from "react";
 import {
-  HeadlessFileInput,
-  HeadlessFileInputProps,
-} from "./headless-file-input";
+  ChangeEventHandler,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
-interface HeadlessFileSelectorProps extends HeadlessFileInputProps {
-  values: Blob[];
-  onChangeValues: (values: Blob[]) => void;
-}
-
-export function HeadlessFileSelector({
-  values,
-  onChangeValues,
-  ...props
-}: HeadlessFileSelectorProps) {
+export function useFileController(initialFiles?: File[]) {
+  const [files, setFiles] = useState<File[]>(initialFiles || []);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -23,34 +17,28 @@ export function HeadlessFileSelector({
     // Forces developer to submit images through alternative path to standard form submission.
     // If form submission workflow is needed, use HeadlessFileInput instead.
     inputRef.current.value = "";
-  }, [values]);
+  }, [files]);
 
   const onInputChange: ChangeEventHandler<HTMLInputElement> = useCallback(
     (e) => {
-      const fileList = e.target.files;
+      const fileList = e.currentTarget.files;
       if (!fileList) {
-        onChangeValues([]);
+        setFiles([]);
         return;
       }
 
-      let values: Blob[] = [];
+      let values: File[] = [];
       for (let i = 0; i < fileList.length; i++) {
         const file = fileList.item(i);
         if (file) {
           values.push(file);
         }
       }
-
-      onChangeValues(values);
+      console.log(values);
+      setFiles(values);
     },
     []
   );
 
-  return (
-    <HeadlessFileInput
-      inputRef={inputRef}
-      onChange={onInputChange}
-      {...props}
-    />
-  );
+  return { files, setFiles, onInputChange, inputRef };
 }

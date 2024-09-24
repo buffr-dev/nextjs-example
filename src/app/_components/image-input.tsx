@@ -1,34 +1,44 @@
 "use client";
 
 import clsx from "clsx";
-import { HeadlessFileInput } from "./headless-file-input";
-import { useFileInput } from "../_hooks/use-file-input";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useImageDownloader } from "../_hooks/use-image-downloader";
-import { useRef } from "react";
+import { HeadlessFileSelector } from "./headless-file-selector";
 
 interface Props {
   initialURL?: string | null;
 }
 
 interface NamedBlob extends Blob {
-  dataURL: string;
-  size?: number;
   name: string;
 }
 
-export function SingleImageInput(props: Props) {
-  const { blobDataURL } = useImageDownloader(props.initialURL);
-  const { dataURL, onInputChange, clear } = useFileInput(blobDataURL);
+export function ImageInput(props: Props) {
+  const [values, setValues] = useState<Blob[]>([]);
+  const { blob } = useImageDownloader(props.initialURL);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setValues(blob ? [blob] : []);
+  }, [blob]);
+
+  const dataURL = useMemo(() => {
+    if (!values || values.length === 0) return null;
+    // TODO object urls are not released...
+    return URL.createObjectURL(values[0]);
+  }, [values]);
+
   return (
     <>
       {dataURL && <img className="size-96 rounded-md" src={dataURL} />}
-      <HeadlessFileInput
-        values={[blobDataURL]}
-        onChange={onInputChange}
+      <HeadlessFileSelector
+        values={values}
+        onChangeValues={(newValues) => {
+          setValues(newValues);
+        }}
         accept="image/*"
         inputName="uploader"
-        inputRef={inputRef}
+        multiple
       >
         <div
           className={clsx(
@@ -40,11 +50,10 @@ export function SingleImageInput(props: Props) {
           {!dataURL && <div>Upload</div>}
           {dataURL && <div>Change</div>}
         </div>
-      </HeadlessFileInput>
+      </HeadlessFileSelector>
       <button
         onClick={() => {
-          clear();
-          if (inputRef.current) inputRef.current.value = "";
+          setValues([]);
         }}
       >
         Clear

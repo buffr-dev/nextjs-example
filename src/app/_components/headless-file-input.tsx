@@ -1,11 +1,16 @@
-import { ChangeEventHandler, CSSProperties, Ref, useMemo } from "react";
+import {
+  ChangeEventHandler,
+  CSSProperties,
+  PropsWithChildren,
+  Ref,
+} from "react";
 
-interface Props extends Omit<React.HTMLAttributes<HTMLDivElement>, "onChange"> {
-  inputName?: string; // implement onchange but for this
+export interface HeadlessFileInputProps extends PropsWithChildren {
+  inputName?: string;
+  inputRef?: Ref<HTMLInputElement>;
   onChange?: ChangeEventHandler<HTMLInputElement>;
   accept?: string;
   multiple?: boolean;
-  inputRef?: Ref<HTMLInputElement>;
 }
 
 const inputStyle: CSSProperties = {
@@ -23,13 +28,9 @@ const labelStyle: CSSProperties = {
   position: "relative",
 };
 
-export function HeadlessFileInput(props: Props) {
-  const inputName = useMemo(() => {
-    if (props.inputName) return props.inputName;
-
-    // default to a unique id if no name is given
-    return ["file-input", new Date().getTime()].join("-");
-  }, [props.inputName]);
+const defaultInputName = "file-input";
+export function HeadlessFileInput(props: HeadlessFileInputProps) {
+  const inputName = props.inputName || defaultInputName;
 
   return (
     <label htmlFor={inputName} style={labelStyle}>
@@ -47,18 +48,3 @@ export function HeadlessFileInput(props: Props) {
     </label>
   );
 }
-
-{
-  /* <ImageInput onChange={d => setDroppedFile(d)}>
-  <Card url={}></Card>
-</ImageInput> */
-}
-
-// const progressMap = useUploadProgress()
-
-// export const buffr = new BuffrClient(key: K)
-// const res: { id: string, errors: { [field]: string[] } } = await buffr.uploadImageFile(dropped.file)
-
-interface SingleImageUploader {}
-
-interface MultiImageUploader {}

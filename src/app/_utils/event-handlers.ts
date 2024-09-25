@@ -5,6 +5,7 @@ export function buildFileDropHandler<T>(
 ): DragEventHandler<T> {
   return (e) => {
     e.preventDefault();
+
     receivedFiles(Array.from(e.dataTransfer.files));
   };
 }

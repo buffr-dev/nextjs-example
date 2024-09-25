@@ -1,21 +1,12 @@
 import {
   ChangeEventHandler,
   CSSProperties,
+  forwardRef,
   PropsWithChildren,
-  Ref,
 } from "react";
-
-export interface HeadlessFileInputProps extends PropsWithChildren {
-  inputName?: string;
-  inputRef?: Ref<HTMLInputElement>;
-  onChange?: ChangeEventHandler<HTMLInputElement>;
-  accept?: string;
-  multiple?: boolean;
-}
 
 const inputStyle: CSSProperties = {
   position: "absolute",
-  cursor: "pointer",
   left: 0,
   top: 0,
   display: "none",
@@ -24,21 +15,33 @@ const inputStyle: CSSProperties = {
 };
 
 const labelStyle: CSSProperties = {
-  cursor: "pointer",
   position: "relative",
 };
 
 const defaultInputName = "file-input";
-export function HeadlessFileInput(props: HeadlessFileInputProps) {
+
+export interface HeadlessFileInputProps extends PropsWithChildren {
+  inputName?: string;
+  onChange?: ChangeEventHandler<HTMLInputElement>;
+  accept?: string;
+  multiple?: boolean;
+  disabled?: boolean;
+}
+
+export const HeadlessFileInput = forwardRef<
+  HTMLInputElement,
+  HeadlessFileInputProps
+>((props, ref) => {
   const inputName = props.inputName || defaultInputName;
 
   return (
     <label htmlFor={inputName} style={labelStyle}>
       {props.children}
       <input
-        ref={props.inputRef}
+        ref={ref}
         accept={props.accept}
         multiple={props.multiple}
+        disabled={props.disabled}
         onChange={props.onChange}
         type="file"
         name={inputName}
@@ -47,4 +50,4 @@ export function HeadlessFileInput(props: HeadlessFileInputProps) {
       />
     </label>
   );
-}
+});

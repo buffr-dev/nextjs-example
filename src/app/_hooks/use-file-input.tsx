@@ -1,6 +1,6 @@
 import { ChangeEventHandler, useCallback, useEffect, useRef } from "react";
 
-export function useFileInput(files: File[], onChange: (files: File[]) => void) {
+export function useFileInput(files: any[], onChange: (files: File[]) => void) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

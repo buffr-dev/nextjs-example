@@ -28,7 +28,7 @@ export interface HeadlessFileWizardProps extends PropsWithChildren {
   disabled?: boolean;
 }
 
-export const HeadlessFileInput = forwardRef<
+export const HeadlessFileWizard = forwardRef<
   HTMLInputElement,
   HeadlessFileWizardProps
 >((props, ref) => {

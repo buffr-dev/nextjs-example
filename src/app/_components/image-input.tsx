@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { HeadlessFileInput } from "./headless-file-wizard";
+import { HeadlessFileWizard } from "./headless-file-wizard";
 import { uploadImage } from "../_actions/upload-image";
 import { useFileInput } from "../_hooks/use-file-input";
 import { useFileDrop } from "../_hooks/use-file-drop";
@@ -19,15 +19,12 @@ interface UploadedImage<D> {
 export function ImageInput(props: Props) {
   const { files, setFiles, addRawFiles } = useFileWizardUploader();
 
-  const inputProps = useFileInput(
-    files.map((f) => f.file),
-    addRawFiles
-  );
+  const inputProps = useFileInput(files, addRawFiles);
   const fileDropProps = useFileDrop(addRawFiles);
 
   return (
     <div className="border-2 rounded-md overflow-clip w-full">
-      <HeadlessFileInput
+      <HeadlessFileWizard
         accept="image/*"
         inputName="uploader"
         multiple
@@ -70,7 +67,7 @@ export function ImageInput(props: Props) {
           )}
           {files.length === 0 && <div>Click or Drag Files to Upload</div>}
         </div>
-      </HeadlessFileInput>
+      </HeadlessFileWizard>
       <div className="flex flex-row-reverse border-t-2 border-gray-300">
         <button
           className="bg-background text-foreground p-2 hover:brightness-150 dark:hover:brightness-50 rounded-md"

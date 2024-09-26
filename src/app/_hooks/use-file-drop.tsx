@@ -8,6 +8,4 @@ export function useFileDrop(onChange: (newFiles: File[]) => void) {
     onDrop: buildFileDropHandler(onChange),
     onDragOver: ignoreAndPreventDefault,
   };
-  //         onDrop={onDrop}
-  // onDragOver={ignoreAndPreventDefault}
 }

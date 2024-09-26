@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { HeadlessFileInput } from "./headless-file-input";
+import { HeadlessFileInput } from "./headless-file-wizard";
 import { uploadImage } from "../_actions/upload-image";
 import { useFileInput } from "../_hooks/use-file-input";
 import { useFileDrop } from "../_hooks/use-file-drop";

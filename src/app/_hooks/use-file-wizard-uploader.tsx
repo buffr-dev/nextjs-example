@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { FileWrapper } from "./use-file-manager/types";
+
+export interface FileWrapper<T> {
+  file: File;
+  meta: T;
+}
 
 interface UploadData {
   progress: number;

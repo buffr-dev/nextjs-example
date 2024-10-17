@@ -1,21 +1,38 @@
 import { useState } from "react";
+import { File } from "buffer";
 
 export interface FileWrapper<T> {
   file: File;
   meta: T;
 }
 
-interface UploadData {
+export interface UploadData {
   progress: number;
 }
-
-async function uploadFile(onProgress: () => void) {}
+export interface BaseFileMeta {
+  uploadProgress: number;
+}
 
 async function destroyFile() {}
 
-export function useFileWizardUploader() {
-  const [files, setFiles] = useState<FileWrapper<UploadData>[]>([]);
-  const updateFile = (file: File, metaChanges: Partial<UploadData>) => {
+export function blobToFileWrapper<T>(blob: Blob) {}
+
+export async function urlToFileWrapper<T>(url: string | URL, initalMeta: T) {
+  /*
+    - Download url to blob
+    - Convert blob to File
+    - 
+  */
+}
+
+// TODO user will still need to track dirty images if deferring upload
+export function useS3<T>(
+  initialFiles: FileWrapper<T>[],
+  onAdd: (file: File) => FileWrapper<T>,
+  onRemove: (file: File) => FileWrapper<T>
+) {
+  const [files, setFiles] = useState<FileWrapper<T>[]>(initialFiles);
+  const updateFile = (file: File, metaChanges: Partial<T>) => {
     setFiles((oldFiles) =>
       oldFiles.map((curr) => {
         if (curr.file === file) {
@@ -30,12 +47,6 @@ export function useFileWizardUploader() {
     );
   };
 
-  async function startUpload(wrappedFile: FileWrapper<UploadData>) {
-    uploadFile(() => {
-      updateFile(wrappedFile.file, { progress: 20 });
-    });
-  }
-
   async function startDestroy(file: FileWrapper<UploadData>) {}
 
   const augmentedSetFiles: typeof setFiles = (v) => {
@@ -44,18 +55,18 @@ export function useFileWizardUploader() {
     const addedFiles = newValues.filter((curr) => !files.includes(curr));
 
     setFiles(newValues);
-    removedFiles.forEach(startDestroy);
-    addedFiles.forEach(startUpload);
   };
 
   const addRawFiles = (rawFiles: File[], index?: number) => {
-    const newFiles = rawFiles.map((file) => ({ file, meta: { progress: 0 } }));
+    // TODO auto add dataURL for cleaner client code
     augmentedSetFiles((oldFiles) => [
       ...oldFiles.slice(0, index),
-      ...newFiles,
+      ...rawFiles.map(onAdd),
       ...oldFiles.slice(index),
     ]);
   };
 
   return { files, setFiles, addRawFiles };
 }
+// api/iamge
+// sasdf/1/20241006/39j-202k-aisi-kdkdk,

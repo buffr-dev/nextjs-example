@@ -1,0 +1,26 @@
+What are the open sourceable components that could make a product?
+- Multi-modal search across all files
+- Image Hosting
+  > Feel like CDN is important here..
+  <!-- - Image Processing (Resize, filter, watermark) -->
+  <!-- - Background Removal -->
+  <!-- - Image recognition? -->
+- PDF Document Hosting
+  <!-- - Summarization -->
+- Video/audio Hosting
+  - Streaming
+  - Transcription
+  - Summarization
+-----
+if I use non-s3, can give free dev space?
+
+<Button onClick={() => {
+  const ids = await uploadFiles(files.map(f => f.file))
+  const urls = await ids.map(i => buildFWUrl(i))
+  const vectors = await gpt.buildVecsFromUrl(urls)
+  ids.forEach((id, i) => db.storeImage(id, vector)
+}}>
+
+could deploy an art search engine to market it?
+-> Art search engine in 20 lines of code using FileWizard and CLIP
+

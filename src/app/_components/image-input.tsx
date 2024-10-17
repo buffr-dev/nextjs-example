@@ -1,11 +1,9 @@
 "use client";
 
 import clsx from "clsx";
-import { HeadlessFileWizard } from "./headless-file-wizard";
-import { uploadImage } from "../_actions/upload-image";
-import { useFileInput } from "../_hooks/use-file-input";
-import { useFileDrop } from "../_hooks/use-file-drop";
-import { useFileWizardUploader } from "../_hooks/use-file-wizard-uploader";
+import { HeadlessFileInput } from "../../lib/buffr/components/headless-file-input";
+import { useFileUploader } from "../../lib/buffr/hooks/use-file-uploader";
+import { generatePresignedUrl } from "./actions";
 
 interface Props {
   initialURL?: string | null;
@@ -15,20 +13,23 @@ interface UploadedImage<D> {
   file: File;
   data: D;
 }
-
+/*
+  uploadPresignAction
+  authAction
+  s3KeyGenerator
+  onChangePolicy: 'append', 'replace' -- maybe not in v1
+*/
 export function ImageInput(props: Props) {
-  const { files, setFiles, addRawFiles } = useFileWizardUploader();
-
-  const inputProps = useFileInput(files, addRawFiles);
-  const fileDropProps = useFileDrop(addRawFiles);
+  const { files, setFiles, propPartials, startUpload } =
+    useFileUploader(generatePresignedUrl);
 
   return (
     <div className="border-2 rounded-md overflow-clip w-full">
-      <HeadlessFileWizard
+      <HeadlessFileInput
         accept="image/*"
         inputName="uploader"
         multiple
-        {...inputProps}
+        {...propPartials.inputProps}
       >
         <div
           className={clsx(
@@ -37,19 +38,26 @@ export function ImageInput(props: Props) {
             "text-foreground relative bg-gray-200",
             "hover:bg-gray-200/80 cursor-pointer"
           )}
-          {...fileDropProps}
+          {...propPartials.fileDropProps}
         >
           {files.length > 0 && (
             <div className="flex gap-6 justify-start w-full h-full flex-wrap overflow-y-scroll p-4">
               {files.map((f, i) => (
-                <div className="bg-background p-2 shadow-md shadow-slate-500/50 h-40 relative rounded-sm">
+                <div
+                  key={f.file.name}
+                  className="bg-background p-2 shadow-md shadow-slate-500/50 h-40 relative rounded-sm"
+                >
                   <img
-                    key={f.file.name}
                     className=" w-full h-full object-cover"
                     // TODO release object urls
                     src={URL.createObjectURL(f.file)}
                   />
-
+                  {f.meta.progress < 1 && (
+                    <div className="absolute top-0 left-0 w-full h-full flex items-center flex-col bg-white/50 rounded-md justify-center">
+                      <div>Uploading...</div>
+                      {(f.meta.progress * 100).toFixed(0) + "%"}
+                    </div>
+                  )}
                   <div
                     onClick={(e) => {
                       e.preventDefault();
@@ -67,18 +75,11 @@ export function ImageInput(props: Props) {
           )}
           {files.length === 0 && <div>Click or Drag Files to Upload</div>}
         </div>
-      </HeadlessFileWizard>
+      </HeadlessFileInput>
       <div className="flex flex-row-reverse border-t-2 border-gray-300">
         <button
           className="bg-background text-foreground p-2 hover:brightness-150 dark:hover:brightness-50 rounded-md"
-          onClick={async () => {
-            if (!files) return;
-
-            const formData = new FormData();
-            formData.append("file", files[0].file);
-
-            await uploadImage(formData);
-          }}
+          onClick={startUpload}
         >
           Save
         </button>

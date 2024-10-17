@@ -20,7 +20,7 @@ const labelStyle: CSSProperties = {
 
 const defaultInputName = "file-input";
 
-export interface HeadlessFileWizardProps extends PropsWithChildren {
+export interface HeadlessFileInputProps extends PropsWithChildren {
   inputName?: string;
   onChange?: ChangeEventHandler<HTMLInputElement>;
   accept?: string;
@@ -28,9 +28,9 @@ export interface HeadlessFileWizardProps extends PropsWithChildren {
   disabled?: boolean;
 }
 
-export const HeadlessFileWizard = forwardRef<
+export const HeadlessFileInput = forwardRef<
   HTMLInputElement,
-  HeadlessFileWizardProps
+  HeadlessFileInputProps
 >((props, ref) => {
   const inputName = props.inputName || defaultInputName;
 

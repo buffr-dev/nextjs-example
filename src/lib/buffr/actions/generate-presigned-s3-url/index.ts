@@ -20,7 +20,7 @@ if (process.env.S3_DEV_URL) {
 
 const client = new S3(clientOptions);
 
-export async function generatePresignedUrl(file: File) {
+export async function generatePresignedS3Url(file: File) {
   const r = await createPresignedPost(client, {
     Bucket,
     Key: file.name,

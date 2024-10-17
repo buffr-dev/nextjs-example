@@ -2,6 +2,7 @@ import { useState } from "react";
 import { uploadFileWithProgress } from "../../utils/upload-file-with-progress";
 import { useFileInput } from "..//use-file-input";
 import { useFileDrop } from "../use-file-drop";
+import { generatePresignedS3Url } from "../../actions/generate-presigned-s3-url";
 
 export interface FileWrapper<T> {
   file: File;
@@ -16,7 +17,7 @@ async function destroyFile() {}
 
 // TODO user will still need to track dirty images if deferring upload
 export function useFileUploader(
-  presignUrlAction: (file: File) => Promise<{ url: string }>
+  presignUrlAction?: (file: File) => Promise<{ url: string }>
 ) {
   const [files, setFiles] = useState<FileWrapper<UploadData>[]>([]);
 
@@ -48,10 +49,14 @@ export function useFileUploader(
     );
   };
 
+  // by default, replace since that's what html input does.
+
   async function startUploadHelper(wrappedFile: FileWrapper<UploadData>) {
     const formData = new FormData();
     formData.append("file", wrappedFile.file);
-    const { url } = await presignUrlAction(wrappedFile.file);
+    const maybeDefaultPresignAction =
+      presignUrlAction || generatePresignedS3Url;
+    const { url } = await maybeDefaultPresignAction(wrappedFile.file);
 
     uploadFileWithProgress(url, formData, (progress: number) => {
       updateFile(wrappedFile.file, { progress });

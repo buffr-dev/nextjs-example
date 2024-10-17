@@ -3,25 +3,18 @@
 import clsx from "clsx";
 import { HeadlessFileInput } from "../../lib/buffr/components/headless-file-input";
 import { useFileUploader } from "../../lib/buffr/hooks/use-file-uploader";
-import { generatePresignedUrl } from "./actions";
 
 interface Props {
   initialURL?: string | null;
 }
 
-interface UploadedImage<D> {
-  file: File;
-  data: D;
-}
 /*
   uploadPresignAction
   authAction
   s3KeyGenerator
-  onChangePolicy: 'append', 'replace' -- maybe not in v1
 */
 export function ImageInput(props: Props) {
-  const { files, setFiles, propPartials, startUpload } =
-    useFileUploader(generatePresignedUrl);
+  const { files, setFiles, propPartials, startUpload } = useFileUploader();
 
   return (
     <div className="border-2 rounded-md overflow-clip w-full">

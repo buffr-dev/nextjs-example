@@ -4,37 +4,7 @@ import { useFileInput } from "../use-file-input";
 import { useFileDrop } from "../use-file-drop";
 import { generatePresignedS3Url } from "../../actions/generate-presigned-s3-url";
 import match from "mime-match";
-
-export interface FileWrapper<T = any> {
-  _id: string;
-  file: File;
-  uploadProgress: number;
-  source: "initial" | "input";
-  meta: T;
-}
-
-interface FileUploadConfigPartialOverride<T = any> {
-  append?: boolean;
-  authAction?: () => Promise<void>;
-  s3KeyGenerator?: (file: File) => string;
-  uploadPresignAction?: never;
-}
-
-interface PresignOutput {
-  url: string;
-  headers?: { [key: string]: string };
-}
-
-interface FileUploadConfigFullOverride<T = any> {
-  append?: boolean;
-  authAction: never;
-  s3KeyGenerator: never;
-  uploadPresignAction?: (formData: FormData) => Promise<PresignOutput>;
-}
-
-type FileUploadConfig<T> =
-  | FileUploadConfigPartialOverride<T>
-  | FileUploadConfigFullOverride<T>;
+import { FileUploadConfig, FileWrapper, PresignOutput } from "./types";
 
 let fileWrapperSequence = 0;
 
@@ -131,7 +101,7 @@ export function useFileUploaderWithMeta<T>(
         presignOutput = await overrideConfig.uploadPresignAction(presignData);
       } else {
         const customKey =
-          config?.s3KeyGenerator && config?.s3KeyGenerator(wrappedFile.file);
+          config?.s3KeyGenerator && config?.s3KeyGenerator(wrappedFile);
         presignOutput = await generatePresignedS3Url(presignData, customKey);
       }
 
@@ -176,7 +146,7 @@ export function useFileUploaderWithMeta<T>(
 
 export function useFileUploader(
   initialFiles: FileWrapper[],
-  config?: FileUploadConfigPartialOverride | FileUploadConfigFullOverride
+  config?: FileUploadConfig
 ) {
   return useFileUploaderWithMeta(initialFiles, {}, config);
 }

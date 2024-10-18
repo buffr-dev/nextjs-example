@@ -1,8 +1,9 @@
 "use client";
 
 import clsx from "clsx";
-import { HeadlessFileInput } from "../../lib/buffr/components/headless-file-input";
+
 import { useFileUploader } from "@/lib/buffr/hooks/use-file-uploader";
+import { HeadlessFileInput } from "@buffr-dev/headless-file-input";
 
 interface Props {
   initialURL?: string | null;

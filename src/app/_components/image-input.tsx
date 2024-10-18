@@ -2,22 +2,14 @@
 
 import clsx from "clsx";
 import { HeadlessFileInput } from "../../lib/buffr/components/headless-file-input";
-import { useFileUploader } from "../../lib/buffr/hooks/use-file-uploader";
+import { useFileUploader } from "@/lib/buffr/hooks/use-file-uploader";
 
 interface Props {
   initialURL?: string | null;
 }
 
-/*
-  uploadPresignAction
-  authAction
-  disableDropzone
-  s3KeyGenerator
-*/
 export function ImageInput(props: Props) {
-  const { files, setFiles, propPartials, startUpload } = useFileUploader({
-    authAction: async () => {},
-  });
+  const { files, setFiles, propPartials, uploadAll } = useFileUploader([]);
 
   return (
     <div className="border-2 rounded-md overflow-clip w-full">
@@ -51,10 +43,10 @@ export function ImageInput(props: Props) {
                     // todo consider creating this automatically and putting it in wrapper
                     // then can manage url destruction as well
                   />
-                  {f.meta.progress < 1 && (
+                  {f.uploadProgress < 1 && (
                     <div className="absolute top-0 left-0 w-full h-full flex items-center flex-col bg-white/50 rounded-md justify-center">
                       <div>Uploading...</div>
-                      {(f.meta.progress * 100).toFixed(0) + "%"}
+                      {(f.uploadProgress * 100).toFixed(0) + "%"}
                     </div>
                   )}
                   <div
@@ -78,7 +70,7 @@ export function ImageInput(props: Props) {
       <div className="flex flex-row-reverse border-t-2 border-gray-300">
         <button
           className="bg-background text-foreground p-2 hover:brightness-150 dark:hover:brightness-50 rounded-md"
-          onClick={startUpload}
+          onClick={uploadAll}
         >
           Save
         </button>

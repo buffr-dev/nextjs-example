@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { uploadFileWithProgress } from "../../utils/upload-file-with-progress";
 import { useFileInput } from "../use-file-input";
 import { useFileDrop } from "../use-file-drop";
@@ -7,20 +7,18 @@ import match from "mime-match";
 
 export interface FileWrapper<T> {
   file: File;
+  uploadProgress: number;
+  source: "initial" | "input";
   meta: T;
 }
 
-export interface UploadData {
-  progress: number;
-}
-
-interface FileUploadConfigPartialOverride {
+interface FileUploadConfigPartialOverride<T> {
   authAction?: () => Promise<void>;
   s3KeyGenerator?: (file: File) => string;
   uploadPresignAction?: never;
 }
 
-interface FileUploadConfigFullOverride {
+interface FileUploadConfigFullOverride<T> {
   authAction: never;
   s3KeyGenerator: never;
   uploadPresignAction?: (
@@ -28,97 +26,123 @@ interface FileUploadConfigFullOverride {
   ) => Promise<{ url: string; headers?: { [key: string]: string } }>;
 }
 
-// todo make this type better somehow
-
-// TODO user will still need to track dirty images if deferring upload
-// maybe just a set of removedFiles AND ability to updateFile(file: FileWrapper) -- if allowing FileWrapper customization will need an onAdd callback
-export function useFileUploader(
-  config?: FileUploadConfigPartialOverride | FileUploadConfigFullOverride
+export function useFileUploaderWithMeta<T>(
+  initialFiles: FileWrapper<T>[],
+  initialMeta: T | ((file: File) => T),
+  config?: FileUploadConfigPartialOverride<T> | FileUploadConfigFullOverride<T>
 ) {
-  const [files, setFiles] = useState<FileWrapper<UploadData>[]>([]);
+  const [files, setFiles] = useState<FileWrapper<T>[]>(initialFiles);
+  const [removedFiles, setRemovedFiles] = useState<FileWrapper<T>[]>([]);
+
+  const augmentedSetFiles: typeof setFiles = useCallback(
+    (v) => {
+      const newValues = typeof v === "function" ? v(files) : v;
+      const newlyRemovedFiles = files.filter(
+        (curr) => !newValues.includes(curr)
+      );
+
+      setRemovedFiles((r) => [...r, ...newlyRemovedFiles]);
+      setFiles(newValues);
+    },
+    [files, setRemovedFiles, setFiles]
+  );
 
   const addRawFiles = (rawFiles: File[], index?: number) => {
-    // TODO auto add dataURL for cleaner client code
     const filteredFiles = rawFiles.filter((f) => {
       const acceptSetting = inputProps.ref.current?.accept;
       if (!acceptSetting) return true;
       return match(f.type, inputProps.ref.current?.accept);
     });
-    const newFiles = filteredFiles.map((file) => ({
+
+    const newFiles: FileWrapper<T>[] = filteredFiles.map((file) => ({
       file,
-      meta: { progress: 0 },
+      meta: initialMeta instanceof Function ? initialMeta(file) : initialMeta,
+      source: "input",
+      uploadProgress: 0,
     }));
+
+    const sliceIndex = index === undefined ? files.length : index;
     augmentedSetFiles((oldFiles) => [
-      ...oldFiles.slice(0, index),
+      ...oldFiles.slice(0, sliceIndex),
       ...newFiles,
-      ...oldFiles.slice(index),
+      ...oldFiles.slice(sliceIndex),
     ]);
   };
 
   const inputProps = useFileInput(files, addRawFiles);
   const dropzoneProps = useFileDrop(addRawFiles);
 
-  const updateFile = (file: File, metaChanges: Partial<UploadData>) => {
-    setFiles((oldFiles) =>
-      oldFiles.map((curr) => {
-        if (curr.file === file) {
-          return {
-            file,
-            meta: { ...curr.meta, ...metaChanges },
-          };
-        }
+  const updateFile = useCallback(
+    (file: File, changes: (f: FileWrapper<T>) => FileWrapper<T>) => {
+      setFiles((oldFiles) =>
+        oldFiles.map((curr) => {
+          if (curr.file === file) {
+            return changes(curr);
+          }
 
-        return curr;
-      })
-    );
-  };
+          return curr;
+        })
+      );
+    },
+    []
+  );
 
-  // by default, replace since that's what html input does.
+  const updateFileMeta = useCallback(
+    (file: File, metaChanges: Partial<T>) => {
+      updateFile(file, (f) => ({ ...f, meta: { ...f.meta, ...metaChanges } }));
+    },
+    [updateFile]
+  );
 
-  async function startUploadHelper(wrappedFile: FileWrapper<UploadData>) {
-    const overrideConfig =
-      (config && "uploadPresignAction" in config && config) || null;
-    // todo grab upload custom configs for auth and keyname to generate presign endpoint
-    const presignAction =
-      overrideConfig?.uploadPresignAction || generatePresignedS3Url;
+  const uploadFile = useCallback(
+    async (wrappedFile: FileWrapper<T>) => {
+      const overrideConfig =
+        (config && "uploadPresignAction" in config && config) || null;
+      // todo grab upload custom configs for auth and keyname to generate presign endpoint
+      const presignAction =
+        overrideConfig?.uploadPresignAction || generatePresignedS3Url;
 
-    //todo surround w try/catch?
-    const presignData = new FormData();
-    presignData.append("file", wrappedFile.file);
-    const { url, headers } = await presignAction(presignData);
+      //todo surround w try/catch?
+      const presignData = new FormData();
+      presignData.append("file", wrappedFile.file);
+      const { url, headers } = await presignAction(presignData);
 
-    const uploadData = new FormData();
+      const uploadData = new FormData();
 
-    if (headers) {
-      Object.entries(headers).forEach(([k, v]) => {
-        uploadData.append(k, v);
+      if (headers) {
+        Object.entries(headers).forEach(([k, v]) => {
+          uploadData.append(k, v);
+        });
+      }
+
+      uploadData.append("file", wrappedFile.file);
+      uploadFileWithProgress(url, uploadData, (uploadProgress: number) => {
+        updateFile(wrappedFile.file, (f) => ({ ...f, uploadProgress }));
       });
-    }
+    },
+    [config, updateFile]
+  );
 
-    uploadData.append("file", wrappedFile.file);
-    uploadFileWithProgress(url, uploadData, (progress: number) => {
-      updateFile(wrappedFile.file, { progress });
-    });
-  }
-
-  async function startUpload() {
-    startUploadHelper(files[0]);
-  }
-
-  async function startDestroy(file: FileWrapper<UploadData>) {}
-
-  const augmentedSetFiles: typeof setFiles = (v) => {
-    const newValues = typeof v === "function" ? v(files) : v;
-    const removedFiles = files.filter((curr) => !newValues.includes(curr));
-    const addedFiles = newValues.filter((curr) => !files.includes(curr));
-
-    setFiles(newValues);
-  };
+  const uploadAll = useCallback(async () => {
+    files.filter((f) => f.uploadProgress === 0).forEach(uploadFile);
+  }, [files, uploadFile]);
 
   return {
     files,
-    setFiles,
-    startUpload,
+    setFiles: augmentedSetFiles,
+    removedFiles,
+    uploadFile,
+    updateFileMeta,
+    uploadAll,
     propPartials: { inputProps, dropzoneProps },
   };
+}
+
+export function useFileUploader(
+  initialFiles: FileWrapper<any>[],
+  config?:
+    | FileUploadConfigPartialOverride<any>
+    | FileUploadConfigFullOverride<any>
+) {
+  return useFileUploaderWithMeta<any>(initialFiles, {}, config);
 }

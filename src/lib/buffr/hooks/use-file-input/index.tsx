@@ -16,7 +16,7 @@ export function useFileInput(files: any[], onChange: (files: File[]) => void) {
     (e) => {
       onChange(Array.from(e.target.files || []));
     },
-    []
+    [onChange]
   );
 
   return {

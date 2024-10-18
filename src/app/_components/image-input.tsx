@@ -32,16 +32,12 @@ export function ImageInput(props: Props) {
             <div className="flex gap-6 justify-start w-full h-full flex-wrap overflow-y-scroll p-4">
               {files.map((f, i) => (
                 <div
-                  key={f.file.name}
-                  // todo better key
+                  key={f._id}
                   className="bg-background p-2 shadow-md shadow-slate-500/50 h-40 relative rounded-sm"
                 >
                   <img
                     className=" w-full h-full object-cover"
-                    // TODO release object urls
                     src={URL.createObjectURL(f.file)}
-                    // todo consider creating this automatically and putting it in wrapper
-                    // then can manage url destruction as well
                   />
                   {f.uploadProgress < 1 && (
                     <div className="absolute top-0 left-0 w-full h-full flex items-center flex-col bg-white/50 rounded-md justify-center">

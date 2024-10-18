@@ -5,31 +5,43 @@ import { useFileDrop } from "../use-file-drop";
 import { generatePresignedS3Url } from "../../actions/generate-presigned-s3-url";
 import match from "mime-match";
 
-export interface FileWrapper<T> {
+export interface FileWrapper<T = any> {
+  _id: string;
   file: File;
   uploadProgress: number;
   source: "initial" | "input";
   meta: T;
 }
 
-interface FileUploadConfigPartialOverride<T> {
+interface FileUploadConfigPartialOverride<T = any> {
+  append?: boolean;
   authAction?: () => Promise<void>;
   s3KeyGenerator?: (file: File) => string;
   uploadPresignAction?: never;
 }
 
-interface FileUploadConfigFullOverride<T> {
+interface PresignOutput {
+  url: string;
+  headers?: { [key: string]: string };
+}
+
+interface FileUploadConfigFullOverride<T = any> {
+  append?: boolean;
   authAction: never;
   s3KeyGenerator: never;
-  uploadPresignAction?: (
-    formData: FormData
-  ) => Promise<{ url: string; headers?: { [key: string]: string } }>;
+  uploadPresignAction?: (formData: FormData) => Promise<PresignOutput>;
 }
+
+type FileUploadConfig<T> =
+  | FileUploadConfigPartialOverride<T>
+  | FileUploadConfigFullOverride<T>;
+
+let fileWrapperSequence = 0;
 
 export function useFileUploaderWithMeta<T>(
   initialFiles: FileWrapper<T>[],
   initialMeta: T | ((file: File) => T),
-  config?: FileUploadConfigPartialOverride<T> | FileUploadConfigFullOverride<T>
+  config?: FileUploadConfig<T>
 ) {
   const [files, setFiles] = useState<FileWrapper<T>[]>(initialFiles);
   const [removedFiles, setRemovedFiles] = useState<FileWrapper<T>[]>([]);
@@ -55,6 +67,7 @@ export function useFileUploaderWithMeta<T>(
     });
 
     const newFiles: FileWrapper<T>[] = filteredFiles.map((file) => ({
+      _id: (fileWrapperSequence++).toString(),
       file,
       meta: initialMeta instanceof Function ? initialMeta(file) : initialMeta,
       source: "input",
@@ -62,11 +75,16 @@ export function useFileUploaderWithMeta<T>(
     }));
 
     const sliceIndex = index === undefined ? files.length : index;
-    augmentedSetFiles((oldFiles) => [
-      ...oldFiles.slice(0, sliceIndex),
-      ...newFiles,
-      ...oldFiles.slice(sliceIndex),
-    ]);
+    if (config?.append) {
+      augmentedSetFiles((oldFiles) => [
+        ...oldFiles.slice(0, sliceIndex),
+        ...newFiles,
+        ...oldFiles.slice(sliceIndex),
+      ]);
+    } else {
+      // By default, overwrite current file set when input changes.
+      augmentedSetFiles(newFiles);
+    }
   };
 
   const inputProps = useFileInput(files, addRawFiles);
@@ -99,28 +117,46 @@ export function useFileUploaderWithMeta<T>(
       const overrideConfig =
         (config && "uploadPresignAction" in config && config) || null;
       // todo grab upload custom configs for auth and keyname to generate presign endpoint
-      const presignAction =
-        overrideConfig?.uploadPresignAction || generatePresignedS3Url;
+
+      if (config?.authAction) {
+        await config.authAction();
+      }
 
       //todo surround w try/catch?
       const presignData = new FormData();
       presignData.append("file", wrappedFile.file);
-      const { url, headers } = await presignAction(presignData);
+
+      let presignOutput: PresignOutput;
+      if (overrideConfig?.uploadPresignAction) {
+        presignOutput = await overrideConfig.uploadPresignAction(presignData);
+      } else {
+        const customKey =
+          config?.s3KeyGenerator && config?.s3KeyGenerator(wrappedFile.file);
+        presignOutput = await generatePresignedS3Url(presignData, customKey);
+      }
 
       const uploadData = new FormData();
-
-      if (headers) {
-        Object.entries(headers).forEach(([k, v]) => {
+      if (presignOutput.headers) {
+        Object.entries(presignOutput.headers).forEach(([k, v]) => {
           uploadData.append(k, v);
         });
       }
 
       uploadData.append("file", wrappedFile.file);
-      uploadFileWithProgress(url, uploadData, (uploadProgress: number) => {
-        updateFile(wrappedFile.file, (f) => ({ ...f, uploadProgress }));
-      });
+      uploadFileWithProgress(
+        presignOutput.url,
+        uploadData,
+        (uploadProgress: number) => {
+          updateFile(wrappedFile.file, (f) => ({ ...f, uploadProgress }));
+        }
+      );
     },
-    [config, updateFile]
+    [
+      config?.authAction,
+      config?.s3KeyGenerator,
+      config?.uploadPresignAction,
+      updateFile,
+    ]
   );
 
   const uploadAll = useCallback(async () => {
@@ -139,10 +175,8 @@ export function useFileUploaderWithMeta<T>(
 }
 
 export function useFileUploader(
-  initialFiles: FileWrapper<any>[],
-  config?:
-    | FileUploadConfigPartialOverride<any>
-    | FileUploadConfigFullOverride<any>
+  initialFiles: FileWrapper[],
+  config?: FileUploadConfigPartialOverride | FileUploadConfigFullOverride
 ) {
-  return useFileUploaderWithMeta<any>(initialFiles, {}, config);
+  return useFileUploaderWithMeta(initialFiles, {}, config);
 }

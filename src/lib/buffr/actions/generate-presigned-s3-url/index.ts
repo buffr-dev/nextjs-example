@@ -20,12 +20,15 @@ if (process.env.S3_DEV_URL) {
 
 const client = new S3(clientOptions);
 
-export async function generatePresignedS3Url(formData: FormData) {
+export async function generatePresignedS3Url(
+  formData: FormData,
+  customKey?: string
+) {
   const file = formData.get("file") as File;
   // todo check assumptions
   const r = await createPresignedPost(client, {
     Bucket,
-    Key: file.name,
+    Key: customKey || file.name,
     Fields: {},
     Expires: 10_000,
   });

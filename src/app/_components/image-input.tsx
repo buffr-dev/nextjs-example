@@ -11,10 +11,13 @@ interface Props {
 /*
   uploadPresignAction
   authAction
+  disableDropzone
   s3KeyGenerator
 */
 export function ImageInput(props: Props) {
-  const { files, setFiles, propPartials, startUpload } = useFileUploader();
+  const { files, setFiles, inputProps, startUpload } = useFileUploader({
+    authAction: async () => {},
+  });
 
   return (
     <div className="border-2 rounded-md overflow-clip w-full">
@@ -22,7 +25,7 @@ export function ImageInput(props: Props) {
         accept="image/*"
         inputName="uploader"
         multiple
-        {...propPartials.inputProps}
+        {...inputProps}
       >
         <div
           className={clsx(
@@ -31,19 +34,21 @@ export function ImageInput(props: Props) {
             "text-foreground relative bg-gray-200",
             "hover:bg-gray-200/80 cursor-pointer"
           )}
-          {...propPartials.fileDropProps}
         >
           {files.length > 0 && (
             <div className="flex gap-6 justify-start w-full h-full flex-wrap overflow-y-scroll p-4">
               {files.map((f, i) => (
                 <div
                   key={f.file.name}
+                  // todo better key
                   className="bg-background p-2 shadow-md shadow-slate-500/50 h-40 relative rounded-sm"
                 >
                   <img
                     className=" w-full h-full object-cover"
                     // TODO release object urls
                     src={URL.createObjectURL(f.file)}
+                    // todo consider creating this automatically and putting it in wrapper
+                    // then can manage url destruction as well
                   />
                   {f.meta.progress < 1 && (
                     <div className="absolute top-0 left-0 w-full h-full flex items-center flex-col bg-white/50 rounded-md justify-center">

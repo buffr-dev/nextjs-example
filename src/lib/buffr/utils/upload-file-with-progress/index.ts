@@ -18,7 +18,6 @@ export async function uploadFileWithProgress(
 ) {
   // const presignedUrl = await createPresignedUrl();
   const req = new XMLHttpRequest();
-
   req.upload.addEventListener("loadstart", (event) => {
     const progress = getProgress(event);
     // Progress == 0, do nothing for now...

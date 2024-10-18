@@ -1,6 +1,7 @@
 import {
   ChangeEventHandler,
   CSSProperties,
+  DragEventHandler,
   forwardRef,
   PropsWithChildren,
 } from "react";
@@ -26,6 +27,8 @@ export interface HeadlessFileInputProps extends PropsWithChildren {
   accept?: string;
   multiple?: boolean;
   disabled?: boolean;
+  onDrop: DragEventHandler<HTMLLabelElement>;
+  onDragOver: DragEventHandler<HTMLLabelElement>;
 }
 
 export const HeadlessFileInput = forwardRef<
@@ -35,7 +38,12 @@ export const HeadlessFileInput = forwardRef<
   const inputName = props.inputName || defaultInputName;
 
   return (
-    <label htmlFor={inputName} style={labelStyle}>
+    <label
+      htmlFor={inputName}
+      style={labelStyle}
+      onDrop={props.onDrop}
+      onDragOver={props.onDragOver}
+    >
       {props.children}
       <input
         ref={ref}

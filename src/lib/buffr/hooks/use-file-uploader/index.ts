@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { uploadFileWithProgress } from "../../utils/upload-file-with-progress";
-import { useFileInput } from "..//use-file-input";
+import { useFileInput } from "../use-file-input";
 import { useFileDrop } from "../use-file-drop";
 import { generatePresignedS3Url } from "../../actions/generate-presigned-s3-url";
+import match from "mime-match";
 
 export interface FileWrapper<T> {
   file: File;
@@ -13,17 +14,40 @@ export interface UploadData {
   progress: number;
 }
 
-async function destroyFile() {}
+interface FileUploadConfig {
+  authAction?: () => Promise<void>;
+  s3KeyGenerator?: (file: File) => string;
+  uploadPresignAction?: never;
+}
+
+interface FileUploadConfigOverride {
+  authAction: never;
+  s3KeyGenerator: never;
+  uploadPresignAction?: (
+    formData: FormData
+  ) => Promise<{ url: string; headers?: { [key: string]: string } }>;
+}
+
+// todo make this type better somehow
 
 // TODO user will still need to track dirty images if deferring upload
+// maybe just a set of removedFiles AND ability to updateFile(file: FileWrapper) -- if allowing FileWrapper customization will need an onAdd callback
 export function useFileUploader(
-  presignUrlAction?: (file: File) => Promise<{ url: string }>
+  config?: FileUploadConfig | FileUploadConfigOverride
 ) {
   const [files, setFiles] = useState<FileWrapper<UploadData>[]>([]);
 
   const addRawFiles = (rawFiles: File[], index?: number) => {
     // TODO auto add dataURL for cleaner client code
-    const newFiles = rawFiles.map((file) => ({ file, meta: { progress: 0 } }));
+    const filteredFiles = rawFiles.filter((f) => {
+      const acceptSetting = inputProps.ref.current?.accept;
+      if (!acceptSetting) return true;
+      return match(f.type, inputProps.ref.current?.accept);
+    });
+    const newFiles = filteredFiles.map((file) => ({
+      file,
+      meta: { progress: 0 },
+    }));
     augmentedSetFiles((oldFiles) => [
       ...oldFiles.slice(0, index),
       ...newFiles,
@@ -52,13 +76,27 @@ export function useFileUploader(
   // by default, replace since that's what html input does.
 
   async function startUploadHelper(wrappedFile: FileWrapper<UploadData>) {
-    const formData = new FormData();
-    formData.append("file", wrappedFile.file);
-    const maybeDefaultPresignAction =
-      presignUrlAction || generatePresignedS3Url;
-    const { url } = await maybeDefaultPresignAction(wrappedFile.file);
+    const overrideConfig =
+      (config && "uploadPresignAction" in config && config) || null;
+    // todo grab upload custom configs for auth and keyname to generate presign endpoint
+    const presignAction =
+      overrideConfig?.uploadPresignAction || generatePresignedS3Url;
 
-    uploadFileWithProgress(url, formData, (progress: number) => {
+    //todo surround w try/catch?
+    const presignData = new FormData();
+    presignData.append("file", wrappedFile.file);
+    const { url, headers } = await presignAction(presignData);
+
+    const uploadData = new FormData();
+
+    if (headers) {
+      Object.entries(headers).forEach(([k, v]) => {
+        uploadData.append(k, v);
+      });
+    }
+
+    uploadData.append("file", wrappedFile.file);
+    uploadFileWithProgress(url, uploadData, (progress: number) => {
       updateFile(wrappedFile.file, { progress });
     });
   }
@@ -75,14 +113,12 @@ export function useFileUploader(
     const addedFiles = newValues.filter((curr) => !files.includes(curr));
 
     setFiles(newValues);
-    removedFiles.forEach(startDestroy);
-    addedFiles.forEach(startUpload);
   };
 
   return {
     files,
     setFiles,
     startUpload,
-    propPartials: { inputProps, fileDropProps },
+    inputProps: { ...inputProps, ...fileDropProps },
   };
 }

@@ -1,3 +1,5 @@
+This is a working prototype of a new library for file uploads for Next.js. 
+
 # Motivation
 @buffr/next is an experimental headless UI library that simplifies file upload. Adding file upload to your app has a few gotchas related to styling and ux, as well as backend complications. This library seeks to abstract those gotchas away.
 

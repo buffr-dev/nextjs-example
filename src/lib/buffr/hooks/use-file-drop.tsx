@@ -1,7 +1,7 @@
 import {
   buildFileDropHandler,
   ignoreAndPreventDefault,
-} from "../../utils/event-handlers";
+} from "../utils/event-handlers";
 
 export function useFileDrop(onChange: (newFiles: File[]) => void) {
   return {

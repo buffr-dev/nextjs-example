@@ -15,7 +15,7 @@ interface Props {
   s3KeyGenerator
 */
 export function ImageInput(props: Props) {
-  const { files, setFiles, inputProps, startUpload } = useFileUploader({
+  const { files, setFiles, propPartials, startUpload } = useFileUploader({
     authAction: async () => {},
   });
 
@@ -25,7 +25,8 @@ export function ImageInput(props: Props) {
         accept="image/*"
         inputName="uploader"
         multiple
-        {...inputProps}
+        {...propPartials.inputProps}
+        {...propPartials.dropzoneProps}
       >
         <div
           className={clsx(

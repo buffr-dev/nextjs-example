@@ -14,13 +14,13 @@ export interface UploadData {
   progress: number;
 }
 
-interface FileUploadConfig {
+interface FileUploadConfigPartialOverride {
   authAction?: () => Promise<void>;
   s3KeyGenerator?: (file: File) => string;
   uploadPresignAction?: never;
 }
 
-interface FileUploadConfigOverride {
+interface FileUploadConfigFullOverride {
   authAction: never;
   s3KeyGenerator: never;
   uploadPresignAction?: (
@@ -33,7 +33,7 @@ interface FileUploadConfigOverride {
 // TODO user will still need to track dirty images if deferring upload
 // maybe just a set of removedFiles AND ability to updateFile(file: FileWrapper) -- if allowing FileWrapper customization will need an onAdd callback
 export function useFileUploader(
-  config?: FileUploadConfig | FileUploadConfigOverride
+  config?: FileUploadConfigPartialOverride | FileUploadConfigFullOverride
 ) {
   const [files, setFiles] = useState<FileWrapper<UploadData>[]>([]);
 
@@ -56,7 +56,7 @@ export function useFileUploader(
   };
 
   const inputProps = useFileInput(files, addRawFiles);
-  const fileDropProps = useFileDrop(addRawFiles);
+  const dropzoneProps = useFileDrop(addRawFiles);
 
   const updateFile = (file: File, metaChanges: Partial<UploadData>) => {
     setFiles((oldFiles) =>
@@ -119,6 +119,6 @@ export function useFileUploader(
     files,
     setFiles,
     startUpload,
-    inputProps: { ...inputProps, ...fileDropProps },
+    propPartials: { inputProps, dropzoneProps },
   };
 }
